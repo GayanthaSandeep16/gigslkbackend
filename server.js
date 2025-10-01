@@ -25,6 +25,7 @@ const artistReviewRoutes = require('./routes/artistReviewRoutes');
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
+    'https://gigslk-frontend-git-main-yasassris-projects.vercel.app',
 ];
 
 app.use(cors({
