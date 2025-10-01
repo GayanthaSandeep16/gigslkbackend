@@ -26,12 +26,33 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'https://gigslk-frontend-git-main-yasassris-projects.vercel.app',
+    // Additional domains can be supplied via env: ALLOWED_ORIGINS="https://a.com,https://b.com"
+    ...((process.env.ALLOWED_ORIGINS || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean))
 ];
+
+// Shared origin allow logic (exact match list + Vercel project pattern)
+const isOriginAllowed = (origin) => {
+    if (!origin) return true; // non-browser or same-origin
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+        const { hostname, protocol } = new URL(origin);
+        // Allow Vercel preview/production URLs for this project
+        // Example hostnames: gigslk-frontend-git-*.vercel.app, gigslk-frontend.vercel.app
+        const isVercel = hostname.endsWith('.vercel.app');
+        const isProject = hostname.includes('gigslk-frontend');
+        if (protocol === 'https:' && isVercel && isProject) return true;
+    } catch (_) {
+        // fallthrough to false
+    }
+    return false;
+};
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // non-browser or same-origin
-        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (isOriginAllowed(origin)) return callback(null, true);
         return callback(new Error('Not allowed by CORS'));
     },
     credentials: true, // This is important for cookies, if you use them
@@ -42,7 +63,7 @@ app.use(cors({
 app.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
         const origin = req.headers.origin;
-        if (origin && allowedOrigins.includes(origin)) {
+        if (origin && isOriginAllowed(origin)) {
             res.header('Access-Control-Allow-Origin', origin);
         }
         res.header('Access-Control-Allow-Credentials', 'true');
